@@ -18,11 +18,102 @@
   }
 
   /* ============================================================== */
+  /* LIGHTSPEED PRESETS (MATCHING YOUR VUE LIGHTSPEED COMPONENT)    */
+  /* ============================================================== */
+  const lightSpeedPresets = {
+    one: {
+      name: 'Light 1',
+      fov: 90,
+      speedUp: 2,
+      carLightsFade: 0.4,
+      totalSideLightSticks: 24,
+      lightPairsPerRoadWay: 36,
+      colors: {
+        roadColor: 0x080808,
+        leftCars: [0xff3b14, 0xff6b3d, 0xf2efe9],
+        rightCars: [0xf2efe9, 0xff3b14, 0xff8c66],
+        sticks: 0xff3b14
+      }
+    },
+    two: {
+      name: 'Light 2',
+      fov: 90,
+      speedUp: 2,
+      carLightsFade: 0.4,
+      totalSideLightSticks: 24,
+      lightPairsPerRoadWay: 36,
+      colors: {
+        roadColor: 0x010102,
+        leftCars: [0x58F5B1, 0xAD96F1, 0xf4f2ff],
+        rightCars: [0xAD96F1, 0x58F5B1, 0x7c5ce6],
+        sticks: 0x58F5B1
+      }
+    },
+    three: {
+      name: 'Light 3',
+      fov: 90,
+      speedUp: 2,
+      carLightsFade: 0.4,
+      totalSideLightSticks: 24,
+      lightPairsPerRoadWay: 36,
+      colors: {
+        roadColor: 0x042533,
+        leftCars: [0xDB3996, 0xFCFFFF, 0xff6ec7],
+        rightCars: [0xFCFFFF, 0x0993C6, 0xDB3996],
+        sticks: 0xDB3996
+      }
+    },
+    four: {
+      name: 'Light 4',
+      fov: 90,
+      speedUp: 2,
+      carLightsFade: 0.4,
+      totalSideLightSticks: 24,
+      lightPairsPerRoadWay: 36,
+      colors: {
+        roadColor: 0x2a0504,
+        leftCars: [0xFEED65, 0xE13A28, 0xfff6a8],
+        rightCars: [0xE13A28, 0xFEED65, 0xff614f],
+        sticks: 0xFEED65
+      }
+    },
+    five: {
+      name: 'Light 5',
+      fov: 90,
+      speedUp: 2,
+      carLightsFade: 0.4,
+      totalSideLightSticks: 24,
+      lightPairsPerRoadWay: 36,
+      colors: {
+        roadColor: 0x080808,
+        leftCars: [0xff3b14, 0xf2efe9, 0xff6b3d],
+        rightCars: [0xf2efe9, 0xff3b14, 0xffa07a],
+        sticks: 0xf2efe9
+      }
+    },
+    six: {
+      name: 'Light 6',
+      fov: 90,
+      speedUp: 2,
+      carLightsFade: 0.4,
+      totalSideLightSticks: 24,
+      lightPairsPerRoadWay: 36,
+      colors: {
+        roadColor: 0x080808,
+        leftCars: [0xff3b14, 0xff3b14, 0xf2efe9],
+        rightCars: [0x00d7ff, 0xf2efe9, 0xff3b14],
+        sticks: 0xff3b14
+      }
+    }
+  };
+
+  /* ============================================================== */
   /* 4 CURATED COLOR THEMES (DEFAULT + 3 SCREENSHOT PALETTES)       */
   /* ============================================================== */
   const THEMES = [
     {
       id: 'obsidian-vermilion',
+      lightPreset: 'one',
       bgDark: '#0b0b0a',
       bgLight: '#f2efe9',
       textLight: '#f2efe9',
@@ -39,6 +130,7 @@
     },
     {
       id: 'cobalt-lavender-lime',
+      lightPreset: 'two',
       bgDark: '#010102',
       bgLight: '#AD96F1',
       textLight: '#f4f2ff',
@@ -55,6 +147,7 @@
     },
     {
       id: 'skyblue-white-hotpink',
+      lightPreset: 'three',
       bgDark: '#0993C6',
       bgLight: '#FCFFFF',
       textLight: '#FCFFFF',
@@ -71,6 +164,7 @@
     },
     {
       id: 'crimson-deepred-yellow',
+      lightPreset: 'four',
       bgDark: '#6D1613',
       bgLight: '#E13A28',
       textLight: '#FEED65',
@@ -93,14 +187,219 @@
 
   function syncFluidSplatColor() {
     const t = THEMES[currentThemeIdx];
+    const lsCanvas = document.getElementById('lightSpeedBgCanvas');
     if (currentSurfaceMode === 'light') {
       window.__fluidSplatColor = t.splatLight;
+      if (lsCanvas) lsCanvas.style.opacity = '0';
     } else if (currentSurfaceMode === 'mid') {
       window.__fluidSplatColor = t.splatMid;
+      if (lsCanvas) lsCanvas.style.opacity = '0';
     } else {
       window.__fluidSplatColor = t.splatDark;
+      if (lsCanvas) lsCanvas.style.opacity = '0.62';
     }
   }
+
+  /* ============================================================== */
+  /* 3D LIGHTSPEED BACKGROUND ENGINE (FOR EMPTY DARK AREAS)         */
+  /* ============================================================== */
+  let applyLightSpeedPreset = null;
+
+  (function initLightSpeedBackground() {
+    const canvas = document.getElementById('lightSpeedBgCanvas');
+    if (!canvas || !window.THREE) return;
+
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvas,
+      alpha: true,
+      antialias: true,
+      powerPreference: 'high-performance'
+    });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+    const scene = new THREE.Scene();
+    const baseFov = 90;
+    const camera = new THREE.PerspectiveCamera(baseFov, window.innerWidth / window.innerHeight, 0.1, 420);
+    camera.position.set(0, 6.8, -4);
+    camera.lookAt(0, 2.0, 140);
+
+    const roadLength = 340;
+    const streaksGroup = new THREE.Group();
+    scene.add(streaksGroup);
+
+    const streakMaterials = [];
+    const streakMeshes = [];
+
+    const vertexShader = `
+      uniform float uTime;
+      uniform float uSpeed;
+      uniform float uRoadLength;
+      uniform float uCurveAmp;
+      attribute vec3 aOffset;
+      attribute float aSpeedMul;
+      attribute float aLength;
+      varying float vAlpha;
+
+      void main() {
+        vec3 pos = position;
+        pos.z *= aLength;
+
+        float zPos = mod(aOffset.z - uTime * uSpeed * aSpeedMul, uRoadLength);
+        pos.z += zPos;
+
+        float normZ = pos.z / uRoadLength;
+        float curveX = sin(normZ * 3.14159 * 1.35 + uTime * 0.22) * uCurveAmp * (normZ * normZ);
+        float curveY = cos(normZ * 3.14159 * 0.9) * 2.4 * normZ;
+
+        pos.x += aOffset.x + curveX;
+        pos.y += aOffset.y + curveY;
+
+        vAlpha = smoothstep(0.0, 0.12, normZ) * (1.0 - smoothstep(0.68, 1.0, normZ));
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+      }
+    `;
+
+    const fragmentShader = `
+      uniform vec3 uColor;
+      varying float vAlpha;
+      void main() {
+        gl_FragColor = vec4(uColor, vAlpha * 0.58);
+      }
+    `;
+
+    function buildHighwayStream(PresetConfig) {
+      while (streaksGroup.children.length > 0) {
+        const child = streaksGroup.children[0];
+        streaksGroup.remove(child);
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) child.material.dispose();
+      }
+      streakMaterials.length = 0;
+      streakMeshes.length = 0;
+
+      const palette = [
+        PresetConfig.colors.leftCars[0],
+        PresetConfig.colors.rightCars[0],
+        PresetConfig.colors.leftCars[1],
+        PresetConfig.colors.sticks
+      ];
+
+      const baseCyl = new THREE.BoxBufferGeometry(0.16, 0.12, 1);
+
+      palette.forEach(function (hexColor, groupIdx) {
+        const count = 26;
+        const instGeo = new THREE.InstancedBufferGeometry();
+        instGeo.index = baseCyl.index;
+        instGeo.attributes.position = baseCyl.attributes.position;
+
+        const offsets = new Float32Array(count * 3);
+        const speedMuls = new Float32Array(count);
+        const lengths = new Float32Array(count);
+
+        const isLeft = groupIdx % 2 === 0;
+        for (let i = 0; i < count; i++) {
+          const laneSpread = 4.5 + Math.random() * 24;
+          offsets[i * 3 + 0] = (isLeft ? -1 : 1) * laneSpread;
+          offsets[i * 3 + 1] = (Math.random() - 0.35) * 3.5;
+          offsets[i * 3 + 2] = Math.random() * roadLength;
+
+          speedMuls[i] = (isLeft ? 1.15 : 0.85) + Math.random() * 0.65;
+          lengths[i] = 10 + Math.random() * 26;
+        }
+
+        instGeo.setAttribute('aOffset', new THREE.InstancedBufferAttribute(offsets, 3));
+        instGeo.setAttribute('aSpeedMul', new THREE.InstancedBufferAttribute(speedMuls, 1));
+        instGeo.setAttribute('aLength', new THREE.InstancedBufferAttribute(lengths, 1));
+
+        const mat = new THREE.ShaderMaterial({
+          vertexShader: vertexShader,
+          fragmentShader: fragmentShader,
+          transparent: true,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+          uniforms: {
+            uTime: { value: 0 },
+            uSpeed: { value: 44 },
+            uRoadLength: { value: roadLength },
+            uCurveAmp: { value: 18.0 },
+            uColor: { value: new THREE.Color(hexColor) }
+          }
+        });
+
+        const mesh = new THREE.Mesh(instGeo, mat);
+        mesh.frustumCulled = false;
+        streaksGroup.add(mesh);
+        streakMaterials.push(mat);
+        streakMeshes.push(mesh);
+      });
+    }
+
+    buildHighwayStream(lightSpeedPresets.one);
+
+    applyLightSpeedPreset = function (presetKey) {
+      const chosen = lightSpeedPresets[presetKey] || lightSpeedPresets.one;
+      buildHighwayStream(chosen);
+    };
+
+    let isSpeedingUp = false;
+    let scrollSpeedBoost = 0;
+    let lastScrollPos = window.scrollY;
+
+    window.addEventListener('pointerdown', function () {
+      isSpeedingUp = true;
+    }, { passive: true });
+
+    window.addEventListener('pointerup', function () {
+      isSpeedingUp = false;
+    }, { passive: true });
+
+    window.addEventListener('scroll', function () {
+      const sy = window.scrollY;
+      scrollSpeedBoost = clamp(Math.abs(sy - lastScrollPos) * 0.04, 0, 2.2);
+      lastScrollPos = sy;
+    }, { passive: true });
+
+    function resizeLightSpeed() {
+      renderer.setSize(window.innerWidth, window.innerHeight, false);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    }
+    resizeLightSpeed();
+    window.addEventListener('resize', resizeLightSpeed);
+
+    let accumulatedTime = 0;
+    let currentSpeedMultiplier = 1;
+    let currentFov = baseFov;
+    let lastNow = performance.now();
+
+    function animateLightSpeed(now) {
+      requestAnimationFrame(animateLightSpeed);
+      const dt = Math.min((now - lastNow) / 1000, 0.05);
+      lastNow = now;
+
+      scrollSpeedBoost *= 0.92;
+      const targetMul = (isSpeedingUp ? 2.4 : 1.0) + scrollSpeedBoost;
+      currentSpeedMultiplier = lerp(currentSpeedMultiplier, targetMul, 0.08);
+
+      const targetFov = baseFov + (currentSpeedMultiplier - 1.0) * 14;
+      if (Math.abs(currentFov - targetFov) > 0.05) {
+        currentFov = lerp(currentFov, targetFov, 0.08);
+        camera.fov = currentFov;
+        camera.updateProjectionMatrix();
+      }
+
+      accumulatedTime += dt * currentSpeedMultiplier;
+
+      for (let i = 0; i < streakMaterials.length; i++) {
+        streakMaterials[i].uniforms.uTime.value = accumulatedTime;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    requestAnimationFrame(animateLightSpeed);
+  })();
 
   /* ============================================================== */
   /* 375.STUDIO SUBTLE CHROMATIC ABERRATION CONTROLLER              */
@@ -227,6 +526,7 @@
   const serviceSlides = document.querySelectorAll('.service-slide');
   const chameleonRibbonPath = document.getElementById('chameleonRibbonPath');
   const statementRibbonPath = document.getElementById('statementRibbonPath');
+  const statementRibbonPathMobile = document.getElementById('statementRibbonPathMobile');
   const bridgeRibbonPath = document.getElementById('bridgeRibbonPath');
 
   let activePillarIdx = 0;
@@ -774,8 +1074,6 @@
       const aspect = width / height;
       camera.aspect = aspect;
 
-      // Desktop (> 1024px / aspect >= 1.2) stays 100% untouched (FOV 34, offset 0)
-      // Mobile, Tablet & Narrow Resizable Windows smoothly pull back so plates never clip
       if (aspect < 1.2) {
         const narrowFactor = clamp((1.2 - aspect) / 0.75, 0, 1);
         camera.fov = lerp(34, 44, narrowFactor);
@@ -889,6 +1187,9 @@
     if (statementRibbonPath) {
       statementRibbonPath.setAttribute('stroke', t.accentPrimary);
     }
+    if (statementRibbonPathMobile) {
+      statementRibbonPathMobile.setAttribute('stroke', t.accentPrimary);
+    }
     if (bridgeRibbonPath) {
       bridgeRibbonPath.setAttribute('stroke', t.accentPrimary);
     }
@@ -905,6 +1206,9 @@
 
     if (typeof rebuildGalleryPlatesForTheme === 'function') {
       rebuildGalleryPlatesForTheme(t);
+    }
+    if (typeof applyLightSpeedPreset === 'function') {
+      applyLightSpeedPreset(t.lightPreset);
     }
   }
 
@@ -1021,40 +1325,47 @@
       });
     }
 
-    // Scroll-drawn Ribbon + "played with." reveal + Fluid Trail Color Sync
+    // Scroll-drawn Ribbon (Desktop & Mobile) + "played with." reveal + Fluid Trail Color Sync
     const playedWithChars = gsap.utils.toArray('.played-with-char');
-    if (statementRibbonPath) {
-      const pathLen = statementRibbonPath.getTotalLength ? statementRibbonPath.getTotalLength() : 2200;
-      statementRibbonPath.style.strokeDasharray = pathLen;
-      statementRibbonPath.style.strokeDashoffset = pathLen;
+    [statementRibbonPath, statementRibbonPathMobile].forEach(function (rPath) {
+      if (!rPath) return;
+      const pathLen = rPath.getTotalLength ? rPath.getTotalLength() : 2200;
+      rPath.style.strokeDasharray = pathLen;
+      rPath.style.strokeDashoffset = pathLen;
 
-      gsap.to(statementRibbonPath, {
+      gsap.to(rPath, {
         strokeDashoffset: 0,
         ease: 'none',
         scrollTrigger: {
           trigger: '#statementScrollTrack',
           start: 'top 75%',
           end: 'bottom bottom',
-          scrub: 0.4,
-          onEnter: function () {
-            currentSurfaceMode = 'light';
-            syncFluidSplatColor();
-          },
-          onLeave: function () {
-            currentSurfaceMode = 'dark';
-            syncFluidSplatColor();
-          },
-          onEnterBack: function () {
-            currentSurfaceMode = 'light';
-            syncFluidSplatColor();
-          },
-          onLeaveBack: function () {
-            currentSurfaceMode = 'dark';
-            syncFluidSplatColor();
-          }
+          scrub: 0.4
         }
       });
-    }
+    });
+
+    ScrollTrigger.create({
+      trigger: '#statementScrollTrack',
+      start: 'top 75%',
+      end: 'bottom bottom',
+      onEnter: function () {
+        currentSurfaceMode = 'light';
+        syncFluidSplatColor();
+      },
+      onLeave: function () {
+        currentSurfaceMode = 'dark';
+        syncFluidSplatColor();
+      },
+      onEnterBack: function () {
+        currentSurfaceMode = 'light';
+        syncFluidSplatColor();
+      },
+      onLeaveBack: function () {
+        currentSurfaceMode = 'dark';
+        syncFluidSplatColor();
+      }
+    });
 
     if (playedWithChars.length) {
       gsap.to(playedWithChars, {
