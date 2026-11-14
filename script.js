@@ -26,8 +26,8 @@
       fov: 90,
       speedUp: 2,
       carLightsFade: 0.4,
-      totalSideLightSticks: 24,
-      lightPairsPerRoadWay: 36,
+      totalSideLightSticks: 36,
+      lightPairsPerRoadWay: 50,
       colors: {
         roadColor: 0x080808,
         leftCars: [0xff3b14, 0xff6b3d, 0xf2efe9],
@@ -40,8 +40,8 @@
       fov: 90,
       speedUp: 2,
       carLightsFade: 0.4,
-      totalSideLightSticks: 24,
-      lightPairsPerRoadWay: 36,
+      totalSideLightSticks: 36,
+      lightPairsPerRoadWay: 50,
       colors: {
         roadColor: 0x010102,
         leftCars: [0x58F5B1, 0xAD96F1, 0xf4f2ff],
@@ -54,8 +54,8 @@
       fov: 90,
       speedUp: 2,
       carLightsFade: 0.4,
-      totalSideLightSticks: 24,
-      lightPairsPerRoadWay: 36,
+      totalSideLightSticks: 36,
+      lightPairsPerRoadWay: 50,
       colors: {
         roadColor: 0x042533,
         leftCars: [0xDB3996, 0xFCFFFF, 0xff6ec7],
@@ -68,41 +68,13 @@
       fov: 90,
       speedUp: 2,
       carLightsFade: 0.4,
-      totalSideLightSticks: 24,
-      lightPairsPerRoadWay: 36,
+      totalSideLightSticks: 36,
+      lightPairsPerRoadWay: 50,
       colors: {
         roadColor: 0x2a0504,
         leftCars: [0xFEED65, 0xE13A28, 0xfff6a8],
         rightCars: [0xE13A28, 0xFEED65, 0xff614f],
         sticks: 0xFEED65
-      }
-    },
-    five: {
-      name: 'Light 5',
-      fov: 90,
-      speedUp: 2,
-      carLightsFade: 0.4,
-      totalSideLightSticks: 24,
-      lightPairsPerRoadWay: 36,
-      colors: {
-        roadColor: 0x080808,
-        leftCars: [0xff3b14, 0xf2efe9, 0xff6b3d],
-        rightCars: [0xf2efe9, 0xff3b14, 0xffa07a],
-        sticks: 0xf2efe9
-      }
-    },
-    six: {
-      name: 'Light 6',
-      fov: 90,
-      speedUp: 2,
-      carLightsFade: 0.4,
-      totalSideLightSticks: 24,
-      lightPairsPerRoadWay: 36,
-      colors: {
-        roadColor: 0x080808,
-        leftCars: [0xff3b14, 0xff3b14, 0xf2efe9],
-        rightCars: [0x00d7ff, 0xf2efe9, 0xff3b14],
-        sticks: 0xff3b14
       }
     }
   };
@@ -183,6 +155,7 @@
 
   let currentThemeIdx = 0;
   let currentSurfaceMode = 'dark';
+  let isInsideWhatIDoTrack = false;
   window.__fluidSplatColor = THEMES[0].splatDark;
 
   function syncFluidSplatColor() {
@@ -196,7 +169,7 @@
       if (lsCanvas) lsCanvas.style.opacity = '0';
     } else {
       window.__fluidSplatColor = t.splatDark;
-      if (lsCanvas) lsCanvas.style.opacity = '0.62';
+      if (lsCanvas) lsCanvas.style.opacity = '0.88';
     }
   }
 
@@ -220,16 +193,16 @@
 
     const scene = new THREE.Scene();
     const baseFov = 90;
-    const camera = new THREE.PerspectiveCamera(baseFov, window.innerWidth / window.innerHeight, 0.1, 420);
-    camera.position.set(0, 6.8, -4);
-    camera.lookAt(0, 2.0, 140);
+    const camera = new THREE.PerspectiveCamera(baseFov, window.innerWidth / window.innerHeight, 0.1, 450);
+    // Standard Three.js camera looking down -Z
+    camera.position.set(0, 7.5, 0);
+    camera.lookAt(0, 1.5, -160);
 
-    const roadLength = 340;
+    const roadLength = 320;
     const streaksGroup = new THREE.Group();
     scene.add(streaksGroup);
 
     const streakMaterials = [];
-    const streakMeshes = [];
 
     const vertexShader = `
       uniform float uTime;
@@ -239,23 +212,28 @@
       attribute vec3 aOffset;
       attribute float aSpeedMul;
       attribute float aLength;
+      attribute float aRadius;
       varying float vAlpha;
 
       void main() {
         vec3 pos = position;
+        pos.x *= aRadius;
+        pos.y *= aRadius;
         pos.z *= aLength;
 
-        float zPos = mod(aOffset.z - uTime * uSpeed * aSpeedMul, uRoadLength);
-        pos.z += zPos;
+        // Travel along -Z (in front of camera)
+        float zTravel = mod(aOffset.z + uTime * uSpeed * aSpeedMul, uRoadLength);
+        float zWorld = -zTravel;
+        pos.z += zWorld;
 
-        float normZ = pos.z / uRoadLength;
-        float curveX = sin(normZ * 3.14159 * 1.35 + uTime * 0.22) * uCurveAmp * (normZ * normZ);
-        float curveY = cos(normZ * 3.14159 * 0.9) * 2.4 * normZ;
+        float normZ = clamp(-pos.z / uRoadLength, 0.0, 1.0);
+        float curveX = sin(normZ * 3.14159 * 1.4 + uTime * 0.35) * uCurveAmp * (normZ * normZ);
+        float curveY = cos(normZ * 3.14159 * 0.85) * 3.2 * (normZ * normZ);
 
         pos.x += aOffset.x + curveX;
         pos.y += aOffset.y + curveY;
 
-        vAlpha = smoothstep(0.0, 0.12, normZ) * (1.0 - smoothstep(0.68, 1.0, normZ));
+        vAlpha = smoothstep(0.01, 0.14, normZ) * (1.0 - smoothstep(0.65, 0.98, normZ));
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
       }
     `;
@@ -264,7 +242,7 @@
       uniform vec3 uColor;
       varying float vAlpha;
       void main() {
-        gl_FragColor = vec4(uColor, vAlpha * 0.58);
+        gl_FragColor = vec4(uColor, vAlpha * 0.82);
       }
     `;
 
@@ -276,41 +254,48 @@
         if (child.material) child.material.dispose();
       }
       streakMaterials.length = 0;
-      streakMeshes.length = 0;
 
       const palette = [
         PresetConfig.colors.leftCars[0],
         PresetConfig.colors.rightCars[0],
         PresetConfig.colors.leftCars[1],
+        PresetConfig.colors.rightCars[1],
         PresetConfig.colors.sticks
       ];
 
-      const baseCyl = new THREE.BoxBufferGeometry(0.16, 0.12, 1);
+      const baseBox = new THREE.BoxBufferGeometry(1, 1, 1);
 
       palette.forEach(function (hexColor, groupIdx) {
-        const count = 26;
+        const isSticks = groupIdx === 4;
+        const count = isSticks ? PresetConfig.totalSideLightSticks : PresetConfig.lightPairsPerRoadWay;
         const instGeo = new THREE.InstancedBufferGeometry();
-        instGeo.index = baseCyl.index;
-        instGeo.attributes.position = baseCyl.attributes.position;
+        instGeo.index = baseBox.index;
+        instGeo.attributes.position = baseBox.attributes.position;
 
         const offsets = new Float32Array(count * 3);
         const speedMuls = new Float32Array(count);
         const lengths = new Float32Array(count);
+        const radii = new Float32Array(count);
 
         const isLeft = groupIdx % 2 === 0;
         for (let i = 0; i < count; i++) {
-          const laneSpread = 4.5 + Math.random() * 24;
-          offsets[i * 3 + 0] = (isLeft ? -1 : 1) * laneSpread;
-          offsets[i * 3 + 1] = (Math.random() - 0.35) * 3.5;
+          const laneX = isSticks
+            ? (i % 2 === 0 ? -1 : 1) * (16 + Math.random() * 8)
+            : (isLeft ? -1 : 1) * (2.2 + Math.random() * 13.5);
+
+          offsets[i * 3 + 0] = laneX;
+          offsets[i * 3 + 1] = isSticks ? (Math.random() * 2.5) : (-1.2 + Math.random() * 1.8);
           offsets[i * 3 + 2] = Math.random() * roadLength;
 
-          speedMuls[i] = (isLeft ? 1.15 : 0.85) + Math.random() * 0.65;
-          lengths[i] = 10 + Math.random() * 26;
+          speedMuls[i] = (isLeft ? 1.15 : 0.85) + Math.random() * 0.7;
+          lengths[i] = isSticks ? (4 + Math.random() * 8) : (14 + Math.random() * 34);
+          radii[i] = isSticks ? 0.14 : (0.16 + Math.random() * 0.18);
         }
 
         instGeo.setAttribute('aOffset', new THREE.InstancedBufferAttribute(offsets, 3));
         instGeo.setAttribute('aSpeedMul', new THREE.InstancedBufferAttribute(speedMuls, 1));
         instGeo.setAttribute('aLength', new THREE.InstancedBufferAttribute(lengths, 1));
+        instGeo.setAttribute('aRadius', new THREE.InstancedBufferAttribute(radii, 1));
 
         const mat = new THREE.ShaderMaterial({
           vertexShader: vertexShader,
@@ -320,9 +305,9 @@
           blending: THREE.AdditiveBlending,
           uniforms: {
             uTime: { value: 0 },
-            uSpeed: { value: 44 },
+            uSpeed: { value: 52 },
             uRoadLength: { value: roadLength },
-            uCurveAmp: { value: 18.0 },
+            uCurveAmp: { value: 22.0 },
             uColor: { value: new THREE.Color(hexColor) }
           }
         });
@@ -331,7 +316,6 @@
         mesh.frustumCulled = false;
         streaksGroup.add(mesh);
         streakMaterials.push(mat);
-        streakMeshes.push(mesh);
       });
     }
 
@@ -345,6 +329,8 @@
     let isSpeedingUp = false;
     let scrollSpeedBoost = 0;
     let lastScrollPos = window.scrollY;
+    let mouseTargetX = 0;
+    let mouseCurrentX = 0;
 
     window.addEventListener('pointerdown', function () {
       isSpeedingUp = true;
@@ -354,9 +340,13 @@
       isSpeedingUp = false;
     }, { passive: true });
 
+    window.addEventListener('pointermove', function (e) {
+      mouseTargetX = ((e.clientX / window.innerWidth) - 0.5) * 4.5;
+    }, { passive: true });
+
     window.addEventListener('scroll', function () {
       const sy = window.scrollY;
-      scrollSpeedBoost = clamp(Math.abs(sy - lastScrollPos) * 0.04, 0, 2.2);
+      scrollSpeedBoost = clamp(Math.abs(sy - lastScrollPos) * 0.045, 0, 2.5);
       lastScrollPos = sy;
     }, { passive: true });
 
@@ -388,6 +378,9 @@
         camera.fov = currentFov;
         camera.updateProjectionMatrix();
       }
+
+      mouseCurrentX = lerp(mouseCurrentX, mouseTargetX, 0.05);
+      camera.position.x = mouseCurrentX;
 
       accumulatedTime += dt * currentSpeedMultiplier;
 
@@ -539,17 +532,17 @@
       whatIDoSticky.style.backgroundColor = t.bgLight;
       whatIDoSticky.style.color = t.textDark;
       if (chameleonRibbonPath) chameleonRibbonPath.setAttribute('stroke', t.accentPrimary);
-      currentSurfaceMode = 'light';
+      if (isInsideWhatIDoTrack) currentSurfaceMode = 'light';
     } else if (idx === 1) {
       whatIDoSticky.style.backgroundColor = t.accentPrimary;
       whatIDoSticky.style.color = t.textDark;
       if (chameleonRibbonPath) chameleonRibbonPath.setAttribute('stroke', t.bgDark);
-      currentSurfaceMode = 'mid';
+      if (isInsideWhatIDoTrack) currentSurfaceMode = 'mid';
     } else {
       whatIDoSticky.style.backgroundColor = t.bgDark;
       whatIDoSticky.style.color = t.textLight;
       if (chameleonRibbonPath) chameleonRibbonPath.setAttribute('stroke', t.accentPrimary);
-      currentSurfaceMode = 'dark';
+      if (isInsideWhatIDoTrack) currentSurfaceMode = 'dark';
     }
     syncFluidSplatColor();
   }
@@ -1325,7 +1318,6 @@
       });
     }
 
-    // Scroll-drawn Ribbon (Desktop & Mobile) + "played with." reveal + Fluid Trail Color Sync
     const playedWithChars = gsap.utils.toArray('.played-with-char');
     [statementRibbonPath, statementRibbonPathMobile].forEach(function (rPath) {
       if (!rPath) return;
@@ -1347,8 +1339,8 @@
 
     ScrollTrigger.create({
       trigger: '#statementScrollTrack',
-      start: 'top 75%',
-      end: 'bottom bottom',
+      start: 'top 55%',
+      end: 'bottom 45%',
       onEnter: function () {
         currentSurfaceMode = 'light';
         syncFluidSplatColor();
@@ -1404,7 +1396,16 @@
         start: 'top top',
         end: 'bottom bottom',
         scrub: true,
+        onEnter: function () {
+          isInsideWhatIDoTrack = true;
+          applyPillarSlideColors(activePillarIdx);
+        },
+        onEnterBack: function () {
+          isInsideWhatIDoTrack = true;
+          applyPillarSlideColors(activePillarIdx);
+        },
         onUpdate: function (self) {
+          isInsideWhatIDoTrack = true;
           const p = self.progress;
           if (p < 0.34) {
             setWhatIDoSlide(0, false);
@@ -1415,10 +1416,12 @@
           }
         },
         onLeave: function () {
+          isInsideWhatIDoTrack = false;
           currentSurfaceMode = 'dark';
           syncFluidSplatColor();
         },
         onLeaveBack: function () {
+          isInsideWhatIDoTrack = false;
           currentSurfaceMode = 'dark';
           syncFluidSplatColor();
         }
