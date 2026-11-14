@@ -42,7 +42,7 @@ html, body {
 
 /* Ambient LightSpeed 3D Highway Background Canvas */
 #lightSpeedBgCanvas {
-  opacity: 0.62;
+  opacity: 0.88;
   mix-blend-mode: screen;
   transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1);
 }
