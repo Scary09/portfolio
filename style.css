@@ -40,6 +40,13 @@ html, body {
   will-change: filter;
 }
 
+/* Ambient LightSpeed 3D Highway Background Canvas */
+#lightSpeedBgCanvas {
+  opacity: 0.62;
+  mix-blend-mode: screen;
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .font-display {
   font-family: 'Syne', sans-serif;
   text-shadow:
@@ -326,7 +333,8 @@ html, body {
 .contact-zoom-sheet {
   position: relative;
   z-index: 20;
-  background-color: var(--bg-dark);
+  background-color: rgba(11, 11, 10, 0.82);
+  backdrop-filter: blur(8px);
   transform-origin: center top;
   will-change: transform, opacity;
   box-shadow: 0 -40px 120px rgba(0, 0, 0, 0.9);
@@ -393,10 +401,21 @@ html, body {
   .service-svg-phone {
     width: 11.5rem !important;
   }
+
+  /* Guarantee "played with." is 100% readable even if a ribbon passes near it */
+  .played-with-legible {
+    paint-order: stroke fill;
+    -webkit-text-stroke: 8px var(--bg-light);
+    text-shadow: 0 2px 14px var(--bg-light);
+  }
+
+  .chameleon-ribbon-svg {
+    opacity: 0.22;
+  }
 }
 
 @media (max-width: 640px) {
-:root {
+  :root {
     --chroma-x: 0.45px;
     --chroma-y: 0.12px;
   }
@@ -408,13 +427,14 @@ html, body {
   }
 
   .hero-title-clamp {
-    font-size: clamp(2.2rem, 9.4vw, 3.8rem) !important;
+    font-size: clamp(2.1rem, 9.1vw, 3.8rem) !important;
     line-height: 0.92 !important;
   }
 
   .hero-work-clamp {
-    font-size: clamp(2rem, 8.4vw, 3.4rem) !important;
+    font-size: clamp(1.9rem, 8.2vw, 3.4rem) !important;
   }
+
   .statement-heading-clamp {
     font-size: clamp(2.35rem, 9.8vw, 3.8rem) !important;
     line-height: 0.98 !important;
@@ -422,6 +442,10 @@ html, body {
 
   .played-with-clamp {
     font-size: clamp(2.65rem, 11vw, 4.2rem) !important;
+  }
+
+  .statement-ribbon-mobile {
+    opacity: 0.28;
   }
 
   .service-slide {
